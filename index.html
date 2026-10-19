@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Purchase Order Generator</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="toolbar no-print">
+  <div class="toolbar-brand">
+    <span class="brand-icon">📄</span>
+    <span>Purchase Order Builder</span>
+  </div>
+  <div class="toolbar-actions">
+    <span id="saveStatus" class="save-status">Saved</span>
+    <button id="btnNew" type="button" class="btn">New</button>
+    <button id="btnDownload" type="button" class="btn btn-primary">⬇ Download PDF</button>
+  </div>
+</div>
+
+<div class="app-shell">
+
+  <!-- ===================== FORM (editable, never prints) ===================== -->
+  <section class="form-panel no-print">
+
+    <div class="form-card">
+      <h2>Your Company</h2>
+      <div class="logo-field">
+        <label class="logo-upload" id="logoUpload" title="Click to change logo">
+          <img id="logoImg" class="logo-img" src="logo.png" alt="Company logo">
+          <input type="file" id="logoInput" accept="image/*" class="hidden-input">
+        </label>
+        <span class="field-hint">Click logo to replace</span>
+      </div>
+      <label class="form-label">Company Name
+        <input class="form-input" data-field="companyName" placeholder="Your Company Name">
+      </label>
+      <label class="form-label">Address
+        <textarea class="form-input" data-field="companyAddress" rows="2" placeholder="Company Address, City, State, PIN"></textarea>
+      </label>
+      <label class="form-label">Phone · Email · Website
+        <input class="form-input" data-field="companyContact" placeholder="Phone · Email · Website">
+      </label>
+      <div class="form-row">
+        <label class="form-label">GSTIN
+          <input class="form-input" data-field="companyGSTIN" placeholder="GSTIN">
+        </label>
+        <label class="form-label">PAN
+          <input class="form-input" data-field="companyPAN" placeholder="PAN">
+        </label>
+      </div>
+      <div class="form-row">
+        <label class="form-label">State
+          <select class="form-input" data-field="companyState" id="companyStateSelect"></select>
+        </label>
+        <label class="form-label">CIN (optional)
+          <input class="form-input" data-field="companyCIN" placeholder="CIN">
+        </label>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h2>PO Details</h2>
+      <div class="form-row">
+        <label class="form-label">PO Number
+          <input class="form-input" data-field="poNumber" placeholder="PO-0001">
+        </label>
+        <label class="form-label">Date
+          <input type="date" class="form-input" data-field="poDate">
+        </label>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Status
+          <select class="form-input" data-field="poStatus">
+            <option>Draft</option>
+            <option>Pending Approval</option>
+            <option>Approved</option>
+            <option>Sent</option>
+          </select>
+        </label>
+        <label class="form-label">Payment Terms
+          <select class="form-input" data-field="paymentTerms">
+            <option>Due on Receipt</option>
+            <option selected>Net 15</option>
+            <option>Net 30</option>
+            <option>Net 45</option>
+            <option>Net 60</option>
+            <option>Custom</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-static-row">
+        <span>Type of Purchase</span>
+        <strong id="formPurchaseType">Select both states below</strong>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h2>Vendor <span class="hint">(supplier you're ordering from)</span></h2>
+      <label class="form-label">Vendor / Supplier Name
+        <input class="form-input" data-field="vendorName" placeholder="Vendor / Supplier name">
+      </label>
+      <label class="form-label">Address
+        <textarea class="form-input" data-field="vendorAddress" rows="2" placeholder="Address, City, State, PIN"></textarea>
+      </label>
+      <label class="form-label">Contact Person
+        <input class="form-input" data-field="vendorContactPerson" placeholder="Contact Person">
+      </label>
+      <label class="form-label">Phone · Email
+        <input class="form-input" data-field="vendorContact" placeholder="Phone · Email">
+      </label>
+      <div class="form-row">
+        <label class="form-label">GSTIN
+          <input class="form-input" data-field="vendorGSTIN" placeholder="GSTIN">
+        </label>
+        <label class="form-label">PAN
+          <input class="form-input" data-field="vendorPAN" placeholder="PAN">
+        </label>
+      </div>
+      <label class="form-label">State
+        <select class="form-input" data-field="vendorState" id="vendorStateSelect"></select>
+      </label>
+    </div>
+
+    <div class="form-card">
+      <h2>Ship To
+        <label class="checkbox-inline"><input type="checkbox" id="shipSameAsCompany"> Same as company</label>
+      </h2>
+      <label class="form-label">Recipient Name
+        <input class="form-input" data-field="shipName" placeholder="Recipient name">
+      </label>
+      <label class="form-label">Delivery Address
+        <textarea class="form-input" data-field="shipAddress" rows="2" placeholder="Delivery address"></textarea>
+      </label>
+      <label class="form-label">Phone · Email
+        <input class="form-input" data-field="shipContact" placeholder="Phone · Email">
+      </label>
+    </div>
+
+    <div class="form-card">
+      <div class="form-card-head">
+        <h2>Line Items</h2>
+        <div class="dropdown">
+          <button id="btnColumns" type="button" class="btn btn-small">Manage Columns</button>
+          <div id="columnsPanel" class="columns-panel hidden">
+            <p class="panel-title">Table Columns</p>
+            <div id="columnsList" class="columns-list"></div>
+            <form id="addColumnForm" class="add-column-form">
+              <input type="text" id="newColName" placeholder="Column name" maxlength="24" required>
+              <select id="newColType">
+                <option value="text">Text</option>
+                <option value="number">Number</option>
+                <option value="qty">Quantity</option>
+                <option value="rate">Rate / Price</option>
+                <option value="discount">Discount %</option>
+                <option value="tax">GST %</option>
+                <option value="amount">Amount / Total</option>
+              </select>
+              <button type="submit" class="btn btn-small">Add</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="table-scroll" id="formTableScroll">
+        <table id="itemsTable" class="items-table form-items-table">
+          <thead><tr id="itemsHeadRow"></tr></thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+      </div>
+      <button id="btnAddRow" type="button" class="link-btn">+ Add Row</button>
+    </div>
+
+    <div class="form-card">
+      <h2>Charges</h2>
+      <div class="form-row">
+        <label class="form-label">Shipping
+          <input class="form-input" data-field="shippingCharge" value="0" inputmode="decimal">
+        </label>
+        <label class="form-label">Other Charges
+          <input class="form-input" data-field="otherCharges" value="0" inputmode="decimal">
+        </label>
+        <label class="form-label">Discount
+          <input class="form-input" data-field="overallDiscount" value="0" inputmode="decimal">
+        </label>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h2>Notes &amp; Terms</h2>
+      <label class="checkbox-row">
+        <input type="checkbox" id="taxApplicableCheckbox">
+        GST not included in rate above — add note for vendor
+      </label>
+      <label class="form-label">Notes to Vendor
+        <textarea class="form-input" data-field="notes" rows="3" placeholder="Special instructions, delivery notes, etc."></textarea>
+      </label>
+      <label class="form-label">Terms &amp; Conditions
+        <textarea class="form-input" data-field="terms" rows="5">1. Goods and quantities must match the specifications in this purchase order.
+2. Please reference the PO number on all invoices, delivery challans, and correspondence.
+3. Delivery time is 15 days; please inform us in advance of any delay.
+4. If the vendor fails to comply with applicable GST law for this transaction, any resulting tax liability will be recovered from the vendor.
+5. This order is subject to the jurisdiction of the courts at the company's registered location.
+</textarea>
+      </label>
+    </div>
+
+  </section>
+
+  <!-- ===================== PREVIEW (read-only, this is what prints) ===================== -->
+  <div class="preview-wrap">
+    <div class="page-scaler">
+      <main class="po-page" id="poPage">
+
+        <section class="po-header">
+          <div class="po-brand">
+            <!-- <img id="previewLogoImg" class="logo-img" src="logo.png" alt="Company logo"> -->
+            <div class="brand-fields">
+              <p class="pv pv-xl" data-preview="companyName"></p>
+              <p class="pv pv-sm" data-preview="companyAddress"></p>
+              <p class="pv pv-sm" data-preview="companyContact"></p>
+              <p class="pv pv-sm">
+                <span class="kv" data-preview="companyGSTIN" data-label="GSTIN"></span>
+                <span class="kv" data-preview="companyPAN" data-label="PAN"></span>
+              </p>
+              <p class="pv pv-sm">
+                <span class="pv" data-preview="companyState"></span>
+                <span class="kv" data-preview="companyCIN" data-label="CIN"></span>
+              </p>
+            </div>
+          </div>
+          <div class="po-title-block">
+            <h1 class="po-title">Purchase Order</h1>
+            <div class="po-id-row"><span>PO #</span><strong class="pv" data-preview="poNumber"></strong></div>
+            <div class="po-id-row"><span>Date</span><strong class="pv" data-preview="poDate" data-format="date"></strong></div>
+            <div class="po-id-row"><span>Status</span><strong class="pv" data-preview="poStatus" data-format="select"></strong></div>
+          </div>
+        </section>
+
+        <section class="po-meta-grid">
+          <div class="meta-item">
+            <label>Payment Terms</label>
+            <strong class="pv" data-preview="paymentTerms" data-format="select"></strong>
+          </div>
+          <div class="meta-item">
+            <label>Type of Purchase</label>
+            <strong id="previewPurchaseType">—</strong>
+          </div>
+        </section>
+
+        <section class="po-parties">
+          <div class="party-block">
+            <h3>Vendor</h3>
+            <p class="pv party-name" data-preview="vendorName"></p>
+            <p class="pv" data-preview="vendorAddress"></p>
+            <p class="kv" data-preview="vendorContactPerson" data-label="Attn"></p>
+            <p class="pv" data-preview="vendorContact"></p>
+            <p class="pv pv-sm">
+              <span class="kv" data-preview="vendorGSTIN" data-label="GSTIN"></span>
+              <span class="kv" data-preview="vendorPAN" data-label="PAN"></span>
+            </p>
+            <p class="pv" data-preview="vendorState"></p>
+          </div>
+          <div class="party-block">
+            <h3>Ship To</h3>
+            <p class="pv party-name" data-preview="shipName"></p>
+            <p class="pv" data-preview="shipAddress"></p>
+            <p class="pv" data-preview="shipContact"></p>
+          </div>
+        </section>
+
+        <section class="po-items">
+          <div class="table-scroll" id="previewTableScroll">
+            <table id="previewTable" class="items-table">
+              <thead><tr id="previewHeadRow"></tr></thead>
+              <tbody id="previewBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="po-totals">
+          <div class="totals-left">
+            <div id="gstSummaryWrap" class="gst-summary hidden">
+              <p class="gst-summary-title">GST Summary</p>
+              <table id="gstSummaryTable" class="gst-summary-table"></table>
+            </div>
+            <div class="notes-block">
+              <label>Notes to Vendor</label>
+              <p class="pv" data-preview="notes"></p>
+            </div>
+          </div>
+          <div class="totals-right">
+            <div class="totals-row"><span>Subtotal</span><strong id="previewSubtotal"></strong></div>
+            <div class="totals-row"><span>GST</span><strong id="previewTax"></strong></div>
+            <div class="totals-row"><span>Shipping</span><strong id="previewShipping"></strong></div>
+            <div class="totals-row"><span>Other Charges</span><strong id="previewOther"></strong></div>
+            <div class="totals-row"><span>Discount</span><strong id="previewDiscount"></strong></div>
+            <div class="totals-row"><span>Round Off</span><strong id="previewRoundOff"></strong></div>
+            <div class="totals-row grand"><span>Grand Total</span><strong id="previewGrandTotal"></strong></div>
+          </div>
+        </section>
+
+        <section class="po-amount-words">
+          <span>Amount in Words:</span> <strong id="amountInWords">—</strong>
+        </section>
+
+        <section class="po-terms">
+          <label>Terms &amp; Conditions</label>
+          <p class="pv" data-preview="terms"></p>
+        </section>
+
+        <section class="po-signature">
+          <div class="sig-block"><div class="sig-line"></div><strong class="sig-name">Ashutosh Tiwari</strong><span>Prepared By</span></div>
+          <div class="sig-block"><div class="sig-line"></div><strong class="sig-name">Ashutosh Tiwari</strong><span>Checked By</span></div>
+          <div class="sig-block"><div class="sig-line"></div><strong class="sig-name">Mr. Prakash</strong><span>Authorized By</span></div>
+        </section>
+
+        <footer class="po-footer">This is a computer-generated purchase order and does not require a physical signature.</footer>
+      </main>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
